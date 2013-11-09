@@ -21,10 +21,9 @@ if (!store.enabled) {
 		console.info(JSON.stringify(originalChanges[index]));
 	}
 	appendToStream(streamId, originalChanges, function success() {
-		readFromStream(streamId, function(loadedChanges) {
+		var loaded = new Model.PrivateInventoryItemConstructor();
+		readFromStream(streamId, loaded, function() {
 			//Second command
-			var loaded = new Model.PrivateInventoryItemConstructor();
-			loaded.initialize(loadedChanges);
 			loaded.checkIn(2);
 			var newChanges = loaded.getChanges();
 			for(var index = 0, length = newChanges.length; index < length; index++) {
@@ -105,17 +104,26 @@ function prepareChangesForModel(payload) {
 	return changes;
 }
 
-function readFromStream(streamId, callback) {
+function readFromStream(streamId, instance, callback) {
 	$.ajax({
 		type:'GET',
-		url: 'http://127.0.0.1:2113/streams/' + streamId,
-		success: function (data) {
-          console.info('ES read success');
-          callback(prepareChangesForModel(data));
-        },
-        error: function (data) {
-          console.info('ES read failure');
-        }
+		url: 'http://127.0.0.1:2113/streams/' + streamId
+	}).done(function(data) {
+		console.info('ES read success');
+		var tasks = [];
+		for(var index=0,length=data.entries.length;index<length;index++) {
+	      	tasks.push(
+	      		$.ajax({
+					type:'GET',
+					url: data.entries[index].id
+				}).done(function(data) {
+					instance.initialize([ { "name": data.summary, "data": data.content.data }]);
+				})
+			);
+	    }
+	    $.when.apply($, tasks).then(function() { callback(); });
+	}).fail(function(){
+		console.info('ES read failure');
 	});
 }
 </script>
