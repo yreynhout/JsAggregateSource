@@ -8,27 +8,38 @@
 if (!store.enabled) {
 	console.error("Local storage is not supported by your browsa - No demo for you.");
 } else {
+	store.set('item/1', []);
+
+	//First command
 	var original = new Model.InventoryItem('item/1', 'Boxer shorts');
 	original.checkIn(5);
-	original.checkIn(2);
-	original.deactivate();
-	var changes1 = original.getChanges();
-	for(var index = 0, length = changes1.length; index < length; index++) {
-		console.info(JSON.stringify(changes1[index]));
+	var originalChanges = original.getChanges();
+	for(var index = 0, length = originalChanges.length; index < length; index++) {
+		console.info(JSON.stringify(originalChanges[index]));
 	}
-	store.set('item/1', changes1);
+	store.set('item/1', originalChanges);
 
+	//Second command
+	var loadedChanges = store.get('item/1');
 	var loaded = new Model.PrivateInventoryItemConstructor();
-	loaded.initialize(store.get('item/1'));
-	try {
-		loaded.deactivate();
-	} catch(error) {
-		console.info('Oops:' + error.message);
+	loaded.initialize(loadedChanges);
+	loaded.checkIn(2);
+	var newChanges = loaded.getChanges();
+	for(var index = 0, length = newChanges.length; index < length; index++) {
+		console.info(JSON.stringify(newChanges[index]));
 	}
-	var changes2 = loaded.getChanges();
-	for(var index = 0, length = changes2.length; index < length; index++) {
-		console.info(JSON.stringify(changes2[index]));
+	store.set('item/1', originalChanges.concat(newChanges));
+
+	//Third command
+	var reloadedChanges = store.get('item/1');
+	var reloaded = new Model.PrivateInventoryItemConstructor();
+	reloaded.initialize(reloadedChanges);
+	reloaded.deactivate();
+	var newestChanges = reloaded.getChanges();
+	for(var index = 0, length = newestChanges.length; index < length; index++) {
+		console.info(JSON.stringify(newestChanges[index]));
 	}
+	store.set('item/1', reloadedChanges.concat(newestChanges));	
 }
 </script>
 </head>
