@@ -1,5 +1,7 @@
 <html>
 <head>
+<script src="scripts/jquery-1.10.2.min.js"></script>
+<script src="scripts/uuid.js"></script>
 <script src="scripts/json2.min.js"></script>
 <script src="scripts/store.min.js"></script>
 <script src="scripts/aggregatesource.js"></script>
@@ -8,18 +10,33 @@
 if (!store.enabled) {
 	console.error("Local storage is not supported by your browsa - No demo for you.");
 } else {
-	store.set('item/1', []);
+	//store.set('item/1', []);
+	var streamId = uuid.v4();
 
 	//First command
-	var original = new Model.InventoryItem('item/1', 'Boxer shorts');
+	var original = new Model.InventoryItem(streamId, 'Boxer shorts');
 	original.checkIn(5);
 	var originalChanges = original.getChanges();
 	for(var index = 0, length = originalChanges.length; index < length; index++) {
 		console.info(JSON.stringify(originalChanges[index]));
 	}
-	store.set('item/1', originalChanges);
+	appendToStream(streamId, originalChanges, function success() {
+		readFromStream(streamId, function(loadedChanges) {
+			//Second command
+			var loaded = new Model.PrivateInventoryItemConstructor();
+			loaded.initialize(loadedChanges);
+			loaded.checkIn(2);
+			var newChanges = loaded.getChanges();
+			for(var index = 0, length = newChanges.length; index < length; index++) {
+				console.info(JSON.stringify(newChanges[index]));
+			}
+			appendToStream(streamId, newChanges);
+		});	
+	});
+	//store.set('item/1', originalChanges);
 
-	//Second command
+	
+	/*//Second command
 	var loadedChanges = store.get('item/1');
 	var loaded = new Model.PrivateInventoryItemConstructor();
 	loaded.initialize(loadedChanges);
@@ -39,7 +56,67 @@ if (!store.enabled) {
 	for(var index = 0, length = newestChanges.length; index < length; index++) {
 		console.info(JSON.stringify(newestChanges[index]));
 	}
-	store.set('item/1', reloadedChanges.concat(newestChanges));	
+	store.set('item/1', reloadedChanges.concat(newestChanges));	*/
+}
+
+function prepareChangesForES(changes) {
+	var payload = [];
+	for(var index=0,length=changes.length;index<length;index++){
+		var change = changes[index];
+		payload.push({
+			"eventid": uuid.v4(),
+			"eventType": change.name,
+			"data": change.data
+		});
+	}
+	return payload;
+}
+
+function appendToStream(streamId, changes, callback) {
+	$.ajax({
+        type: 'POST',
+        url: 'http://127.0.0.1:2113/streams/' + streamId,
+        data: JSON.stringify(prepareChangesForES(changes), null, 2),
+        contentType: 'application/json',
+        /*statusCode: {
+          500: function () {},
+          415: function () {},
+          400: function () {}
+        },*/
+        success: function (data) {
+          console.info('ES write success');
+          if(callback !== undefined) callback();
+        },
+        error: function (data) {
+          console.info('ES write failure');
+        }
+      });
+}
+
+function prepareChangesForModel(payload) {
+	var changes = [];
+	for(var index=0,length=payload.length;index<length;index++){
+		var item = payload[index];
+		changes.push({
+			"name": item.eventType,
+			"data": item.data
+		});
+	}
+	return changes;
+}
+
+function readFromStream(streamId, callback) {
+	$.ajax({
+		type:'GET',
+		url: 'http://127.0.0.1:2113/streams/' + streamId,
+		success: function (data) {
+          console.info('ES read success');
+          callback(prepareChangesForModel(data));
+        },
+        error: function (data) {
+          console.info('ES read failure');
+        }
+	});
 }
 </script>
 </head>
