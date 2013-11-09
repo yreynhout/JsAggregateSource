@@ -1,25 +1,51 @@
 <html>
 <head>
-<script src="scripts/jquery-1.10.2.min.js"></script>
-<script src="scripts/uuid.js"></script>
 <script src="scripts/json2.min.js"></script>
-<script src="scripts/store.min.js"></script>
-<script src="scripts/aggregatesource.js"></script>
+<script src="scripts/uuid.js"></script>
+<script src="scripts/jquery-1.10.2.min.js"></script>
+<script src="scripts/require.js"></script>
+<!-- <script src="scripts/aggregatesource.js"></script>
 <script src="scripts/eventstore.js"></script>
-<script src="scripts/model.js"></script>
+<script src="scripts/model.js"></script> -->
 <script>
-if (!store.enabled) {
-	console.error("Local storage is not supported by your browsa - No demo for you.");
-} else {
-	//store.set('item/1', []);
-	var streamId = uuid.v4();
-	var repository = new EventStore.Repository(
-		function() { return new Model.PrivateInventoryItemConstructor(); },
+require.config({
+	paths: {
+	    'AggregateSource': 'scripts/aggregatesource',
+	    'EventStore': 'scripts/eventstore',
+	    'Model': 'scripts/model'
+	}
+});
+require(['Model'], function(Model) {
+	function prepareChangesForES(changes) {
+		var payload = [];
+		for(var index=0,length=changes.length;index<length;index++){
+			var change = changes[index];
+			payload.push({
+				"eventid": uuid.v4(),
+				"eventType": change.name,
+				"data": change.data
+			});
+		}
+		return payload;
+	}
+
+	function appendToStream(streamId, changes) {
+		return $.ajax({
+	        type: 'POST',
+	        url: 'http://127.0.0.1:2113/streams/' + streamId,
+	        data: JSON.stringify(prepareChangesForES(changes), null, 2),
+	        contentType: 'application/json'
+	      });
+	}
+
+	var id = uuid.v4();
+	var repository = new Model.InventoryItemRepository(
 		{ baseUrl: 'http://localhost:2113/streams/' }
 	);
 
+
 	//First command
-	var original = new Model.InventoryItem(streamId, 'Boxer shorts');
+	var original = new Model.InventoryItem(id, 'Boxer shorts');
 	for(var index=0;index<1000;index++){
 		original.checkIn(Math.floor((Math.random()*10)+1));	
 	}
@@ -27,66 +53,23 @@ if (!store.enabled) {
 	for(var index = 0, length = originalChanges.length; index < length; index++) {
 		console.info(JSON.stringify(originalChanges[index]));
 	}
-	appendToStream(streamId, originalChanges).
+	appendToStream(id, originalChanges).
 	done(function() {
 		repository.
-			get(streamId).
+			get(id).
 			done(function(loaded) {
 				loaded.checkIn(2);
 				var newChanges = loaded.getChanges();
 				for(var index = 0, length = newChanges.length; index < length; index++) {
 					console.info(JSON.stringify(newChanges[index]));
 				}
-				appendToStream(streamId, newChanges).done(function() { console.info("Done with last ES write."); });	
+				appendToStream(id, newChanges).done(function() { console.info("Done with last ES write."); });	
 			});
 	});
-	//store.set('item/1', originalChanges);
+});
 
-	
-	/*//Second command
-	var loadedChanges = store.get('item/1');
-	var loaded = new Model.PrivateInventoryItemConstructor();
-	loaded.initialize(loadedChanges);
-	loaded.checkIn(2);
-	var newChanges = loaded.getChanges();
-	for(var index = 0, length = newChanges.length; index < length; index++) {
-		console.info(JSON.stringify(newChanges[index]));
-	}
-	store.set('item/1', originalChanges.concat(newChanges));
 
-	//Third command
-	var reloadedChanges = store.get('item/1');
-	var reloaded = new Model.PrivateInventoryItemConstructor();
-	reloaded.initialize(reloadedChanges);
-	reloaded.deactivate();
-	var newestChanges = reloaded.getChanges();
-	for(var index = 0, length = newestChanges.length; index < length; index++) {
-		console.info(JSON.stringify(newestChanges[index]));
-	}
-	store.set('item/1', reloadedChanges.concat(newestChanges));	*/
-}
 
-function prepareChangesForES(changes) {
-	var payload = [];
-	for(var index=0,length=changes.length;index<length;index++){
-		var change = changes[index];
-		payload.push({
-			"eventid": uuid.v4(),
-			"eventType": change.name,
-			"data": change.data
-		});
-	}
-	return payload;
-}
-
-function appendToStream(streamId, changes) {
-	return $.ajax({
-        type: 'POST',
-        url: 'http://127.0.0.1:2113/streams/' + streamId,
-        data: JSON.stringify(prepareChangesForES(changes), null, 2),
-        contentType: 'application/json'
-      });
-}
 
 </script>
 </head>

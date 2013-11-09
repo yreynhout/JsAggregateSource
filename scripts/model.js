@@ -1,4 +1,10 @@
-var Model = (function () {
+(function (AggregateSource, EventStore, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['AggregateSource', 'EventStore'], factory);
+    } else {
+        window.Model = factory(AggregateSource, EventStore);
+    }
+}(window.AggregateSource, window.EventStore, function (AggregateSource, EventStore) {
 	var module = {};
 
 	var privateInventoryItemConstructor =
@@ -45,7 +51,13 @@ var Model = (function () {
 
 			return that;
 		};
-	module.PrivateInventoryItemConstructor = privateInventoryItemConstructor;
+
+	module.InventoryItemRepository = 
+		function InventoryItemRepositoryConstructor(options) {
+			return new EventStore.Repository(
+				privateInventoryItemConstructor, 
+				options);
+		};
 
 	module.InventoryItem = 
 		function PublicInventoryItemConstructor(id, name) {
@@ -57,5 +69,6 @@ var Model = (function () {
 			my.applyChange({ name: 'InventoryItemCreated', data: { Id: id, Name: name } });
 			return that;
 		};
+
 	return module;
-}());
+}));

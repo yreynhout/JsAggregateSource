@@ -1,4 +1,10 @@
-var EventStore = (function () {
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([], factory);
+    } else {
+        window.EventStore = factory();
+    }
+}(function() {
 	var module = {};
 	module.Repository = function RepositoryConstructor(rootFactory, options) {
 		if (rootFactory === undefined || rootFactory === null)
@@ -68,4 +74,4 @@ var EventStore = (function () {
 		return that;
 	}
 	return module;
-}());
+}));

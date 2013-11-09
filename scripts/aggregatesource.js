@@ -1,4 +1,10 @@
-var AggregateSource = (function () {
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([], factory);
+    } else {
+        window.AggregateSource = factory();
+    }
+}(function() {
 	var module = {};
 	module.AggregateRootEntity = 
 		function AggregateRootEntityConstructor(options, my) {
@@ -59,5 +65,4 @@ var AggregateSource = (function () {
 			return that;
 		};
 	return module;
-}());
-
+}));
