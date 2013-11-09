@@ -21,25 +21,25 @@ var Model = (function () {
 
 			that.changeName = function changeName(newName) {
 				if (newName === null || newName === undefined || newName === '')
-					throw { message: 'The newName cannot be null, undefined or empty.' };
+					throw new Error('The newName cannot be null, undefined or empty.');
 				my.applyChange({ name: 'InventoryItemRenamed', data: { Id: state.id, NewName: newName } });
 			};
 
 			that.remove = function remove(count) {
 				if (count <= 0)
-					throw { message: 'Cannot remove negative count from inventory.' };
+					throw new Error('Cannot remove negative count from inventory.');
 				my.applyChange({ name: 'ItemsRemovedFromInventory', data: { Id: state.id, Count: count } });
 			}
 
 			that.checkIn = function checkIn(count) {
 				if (count <= 0)
-					throw { message: 'Must have a count greater than 0 to add to inventory.' };
+					throw new Error('Must have a count greater than 0 to add to inventory.');
 				my.applyChange({ name: 'ItemsCheckedInToInventory', data: { Id: state.id, Count: count } });
 			};
 
 			that.deactivate = function deactivate() {
 				if (state.activated === false)
-					throw { message: 'Already deactivated.' };
+					throw new Error('Already deactivated.');
 				my.applyChange({ name: 'InventoryItemDeactivated', data: { Id: state.id } });
 			};
 
@@ -50,7 +50,7 @@ var Model = (function () {
 	module.InventoryItem = 
 		function PublicInventoryItemConstructor(id, name) {
 			if (name === null || name === undefined || name === '')
-				throw { message: 'The name cannot be null, undefined or empty.' };
+				throw new Error('The name cannot be null, undefined or empty.');
 
 			var my = {};
 			var that = privateInventoryItemConstructor(my);

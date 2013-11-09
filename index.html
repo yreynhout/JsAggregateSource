@@ -5,22 +5,30 @@
 <script src="scripts/aggregatesource.js"></script>
 <script src="scripts/model.js"></script>
 <script>
-var item1 = new Model.InventoryItem('item/1', 'Boxer shorts');
-item1.checkIn(5);
-item1.checkIn(2);
-item1.deactivate();
-var changes = item1.getChanges();
-for(var index = 0, length = changes.length; index < length; index++) {
-	console.info(JSON.stringify(changes[index]));
-}
+if (!store.enabled) {
+	console.error("Local storage is not supported by your browsa - No demo for you.");
+} else {
+	var original = new Model.InventoryItem('item/1', 'Boxer shorts');
+	original.checkIn(5);
+	original.checkIn(2);
+	original.deactivate();
+	var changes1 = original.getChanges();
+	for(var index = 0, length = changes1.length; index < length; index++) {
+		console.info(JSON.stringify(changes1[index]));
+	}
+	store.set('item/1', changes1);
 
-var item2 = new Model.InventoryItem('item/2', 'Shoes');
-item2.checkIn(3);
-item2.checkIn(1);
-item2.deactivate();
-var changes = item2.getChanges();
-for(var index = 0, length = changes.length; index < length; index++) {
-	console.info(JSON.stringify(changes[index]));
+	var loaded = new Model.PrivateInventoryItemConstructor();
+	loaded.initialize(store.get('item/1'));
+	try {
+		loaded.deactivate();
+	} catch(error) {
+		console.info('Oops:' + error.message);
+	}
+	var changes2 = loaded.getChanges();
+	for(var index = 0, length = changes2.length; index < length; index++) {
+		console.info(JSON.stringify(changes2[index]));
+	}
 }
 </script>
 </head>
