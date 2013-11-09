@@ -3,64 +3,9 @@
 <script src="scripts/json2.min.js"></script>
 <script src="scripts/store.min.js"></script>
 <script src="scripts/aggregatesource.js"></script>
+<script src="scripts/model.js"></script>
 <script>
-var PrivateInventoryItemConstructor = 
-	function PrivateInventoryItemConstructor(my) {
-		var my = my || { }, 
-			state = { activated: false, id: '' };
-		var that = 
-			new AggregateSource.AggregateRootEntity(
-			{
-				handlers: {
-					'InventoryItemCreated': function InventoryItemCreated(event) {
-						state.id = event.Id;
-			            state.activated = true;
-					},
-					'InventoryItemDeactivated': function InventoryItemDeactivated(event) {
-			            state.activated = false;
-					}
-				}
-			}, my);
-
-		that.changeName = function changeName(newName) {
-			if (newName === null || newName === undefined || newName === '')
-				throw { message: 'The newName cannot be null, undefined or empty.' };
-			my.applyChange({ name: 'InventoryItemRenamed', data: { Id: state.id, NewName: newName } });
-		};
-
-		that.remove = function remove(count) {
-			if (count <= 0)
-				throw { message: 'Cannot remove negative count from inventory.' };
-			my.applyChange({ name: 'ItemsRemovedFromInventory', data: { Id: state.id, Count: count } });
-		}
-
-		that.checkIn = function checkIn(count) {
-			if (count <= 0)
-				throw { message: 'Must have a count greater than 0 to add to inventory.' };
-			my.applyChange({ name: 'ItemsCheckedInToInventory', data: { Id: state.id, Count: count } });
-		};
-
-		that.deactivate = function deactivate() {
-			if (state.activated === false)
-				throw { message: 'Already deactivated.' };
-			my.applyChange({ name: 'InventoryItemDeactivated', data: { Id: state.id } });
-		};
-
-		return that;
-	};
-
-var InventoryItem = 
-	function PublicInventoryItemConstructor(id, name) {
-		if (name === null || name === undefined || name === '')
-			throw { message: 'The name cannot be null, undefined or empty.' };
-
-		var my = {};
-		var that = PrivateInventoryItemConstructor(my);
-		my.applyChange({ name: 'InventoryItemCreated', data: { Id: id, Name: name } });
-		return that;
-	};
-
-var item1 = InventoryItem('item/1', 'Boxer shorts');
+var item1 = new Model.InventoryItem('item/1', 'Boxer shorts');
 item1.checkIn(5);
 item1.checkIn(2);
 item1.deactivate();
@@ -69,7 +14,7 @@ for(var index = 0, length = changes.length; index < length; index++) {
 	console.info(JSON.stringify(changes[index]));
 }
 
-var item2 = InventoryItem('item/2', 'Shoes');
+var item2 = new Model.InventoryItem('item/2', 'Shoes');
 item2.checkIn(3);
 item2.checkIn(1);
 item2.deactivate();
