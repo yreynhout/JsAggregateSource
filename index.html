@@ -5,6 +5,7 @@
 <script src="scripts/json2.min.js"></script>
 <script src="scripts/store.min.js"></script>
 <script src="scripts/aggregatesource.js"></script>
+<script src="scripts/eventstore.js"></script>
 <script src="scripts/model.js"></script>
 <script>
 if (!store.enabled) {
@@ -12,6 +13,10 @@ if (!store.enabled) {
 } else {
 	//store.set('item/1', []);
 	var streamId = uuid.v4();
+	var repository = new EventStore.Repository(
+		function() { return new Model.PrivateInventoryItemConstructor(); },
+		{ baseUrl: 'http://localhost:2113/streams/' }
+	);
 
 	//First command
 	var original = new Model.InventoryItem(streamId, 'Boxer shorts');
@@ -24,17 +29,16 @@ if (!store.enabled) {
 	}
 	appendToStream(streamId, originalChanges).
 	done(function() {
-		readFromStream(streamId).
-		done(function(loadedChanges) {
-			var loaded = new Model.PrivateInventoryItemConstructor();
-			loaded.initialize(loadedChanges);
-			loaded.checkIn(2);
-			var newChanges = loaded.getChanges();
-			for(var index = 0, length = newChanges.length; index < length; index++) {
-				console.info(JSON.stringify(newChanges[index]));
-			}
-			appendToStream(streamId, newChanges).done(function() { console.info("Done with last ES write."); });
-		})
+		repository.
+			get(streamId).
+			done(function(loaded) {
+				loaded.checkIn(2);
+				var newChanges = loaded.getChanges();
+				for(var index = 0, length = newChanges.length; index < length; index++) {
+					console.info(JSON.stringify(newChanges[index]));
+				}
+				appendToStream(streamId, newChanges).done(function() { console.info("Done with last ES write."); });	
+			});
 	});
 	//store.set('item/1', originalChanges);
 
@@ -84,80 +88,6 @@ function appendToStream(streamId, changes) {
       });
 }
 
-function readFromStream(streamId) {
-	var deferred = new $.Deferred();
-	var streamDataGetter = function (events, streamData) {
-			var tasks = [];
-			for(var index=0,length=streamData.entries.length;index<length;index++) {
-		      	tasks.push(
-		      		$.ajax({
-						type:'GET',
-						url: streamData.entries[index].id
-					}).done(function(eventData) {
-						events.push({ 
-							"version": eventData.content.eventNumber, 
-							"name": eventData.content.eventType,
-							"data": eventData.content.data 
-						});
-					})
-				);
-		    }
-		    $.when.apply($, tasks).then(function() {
-		    	var nextLinks = streamData.links.filter(function(item) { return item.relation === "next"; });
-		    	if (nextLinks.length === 1) {
-		    		$.ajax({
-						type:'GET',
-						url: nextLinks[0].uri
-					}).done(function(nextStreamData) {
-						streamDataGetter(events, nextStreamData);
-					});
-		    	} else {
-		    		deferred.resolve(events.sort(function(item1, item2) {
-		    			if(item1.version < item2.version) 
-		    				return -1;
-		    			if(item1.version > item2.version)
-		    				return 1;
-		    			return 0;
-		    		}));
-		    	}
-		    });
-	};
-	var events = [];
-	$.ajax({
-		type:'GET',
-		url: 'http://127.0.0.1:2113/streams/' + streamId
-	}).done(function(streamData) {
-		streamDataGetter(events, streamData);
-	}).fail(function(error){
-		console.log("ES read failure");
-	});
-	return deferred;
-	/*$.ajax({
-		type:'GET',
-		url: 'http://127.0.0.1:2113/streams/' + streamId
-	}).done(function(data) {
-		console.info('ES read success');
-		var tasks = [];
-		for(var index=0,length=data.entries.length;index<length;index++) {
-	      	tasks.push(
-	      		$.ajax({
-					type:'GET',
-					url: data.entries[index].id
-				}).done(function(data) {
-					instance.initialize([ { "name": data.summary, "data": data.content.data }]);
-				})
-			);
-	    }
-	    $.when.apply($, tasks).then(function() { callback(); });
-	}).fail(function(){
-		console.info('ES read failure');
-	});*/
-}
-
-
-//Get stream
-//When that's done, get each event and push it onto a stack
-//When all events in this batch are done, repeat until no more batches
 </script>
 </head>
 <body></body>
