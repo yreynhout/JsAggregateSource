@@ -1,10 +1,10 @@
-(function (factory) {
+(function (global, factory) {
     if (typeof define === 'function' && define.amd) {
         define([], factory);
     } else {
-        window.EventStore = factory();
+        global.EventStore = factory();
     }
-}(function() {
+}(this, function() {
 	var module = {};
 	module.Repository = function RepositoryConstructor(rootFactory, options) {
 		if (rootFactory === undefined || rootFactory === null)
