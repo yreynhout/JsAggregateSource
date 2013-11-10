@@ -1,10 +1,10 @@
-(function (AggregateSource, EventStore, factory) {
+(function (global, AggregateSource, EventStore, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['AggregateSource', 'EventStore'], factory);
     } else {
-        window.Model = factory(AggregateSource, EventStore);
+        global.Model = factory(AggregateSource, EventStore);
     }
-}(window.AggregateSource, window.EventStore, function (AggregateSource, EventStore) {
+}(this, this.AggregateSource, this.EventStore, function (AggregateSource, EventStore) {
 	var module = {};
 
 	var privateInventoryItemConstructor =
