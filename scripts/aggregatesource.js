@@ -1,10 +1,10 @@
-(function (factory) {
+(function (global, factory) {
     if (typeof define === 'function' && define.amd) {
         define([], factory);
     } else {
-        window.AggregateSource = factory();
+        global.AggregateSource = factory();
     }
-}(function() {
+}(global, function() {
 	var module = {};
 	module.AggregateRootEntity = 
 		function AggregateRootEntityConstructor(options, my) {
