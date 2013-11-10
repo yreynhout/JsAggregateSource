@@ -4,7 +4,7 @@
     } else {
         global.AggregateSource = factory();
     }
-}(global, function() {
+}(this, function() {
 	var module = {};
 	module.AggregateRootEntity = 
 		function AggregateRootEntityConstructor(options, my) {
